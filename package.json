@@ -1,0 +1,35 @@
+{
+  "name": "opencode-copilot-budget",
+  "version": "1.0.0",
+  "description": "GitHub Copilot premium budget in the OpenCode TUI sidebar",
+  "author": "Bhaskar Melkani",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bhaskarmelkani/opencode-copilot-budget.git"
+  },
+  "homepage": "https://github.com/bhaskarmelkani/opencode-copilot-budget#readme",
+  "bugs": {
+    "url": "https://github.com/bhaskarmelkani/opencode-copilot-budget/issues"
+  },
+  "type": "module",
+  "exports": {
+    "./tui": "./src/index.tsx"
+  },
+  "files": [
+    "src/",
+    "LICENSE",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@opencode-ai/plugin": "*",
+    "@opentui/solid": "*",
+    "solid-js": "*"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "opencode-tui-plugin",
+    "github-copilot"
+  ],
+  "license": "MIT"
+}
