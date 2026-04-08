@@ -5,7 +5,7 @@
   "author": "Bhaskar Melkani",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bhaskarmelkani/opencode-copilot-budget.git"
+    "url": "git+https://github.com/bhaskarmelkani/opencode-copilot-budget.git"
   },
   "homepage": "https://github.com/bhaskarmelkani/opencode-copilot-budget#readme",
   "bugs": {
