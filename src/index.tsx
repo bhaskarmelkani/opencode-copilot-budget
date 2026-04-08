@@ -213,7 +213,7 @@ function ProgressBar(props: { percent: number }) {
   const empty = BAR_WIDTH - filled
   const color = clampedPercent >= 90 ? BAR_DANGER_COLOR : BAR_FILL_COLOR
   return (
-    <text fg={color}>{`${"█".repeat(filled)}${"░".repeat(empty)} ${clampedPercent}% Used`}</text>
+    <text fg={color}>{`${"▬".repeat(filled)}${"╌".repeat(empty)} ${clampedPercent}% Used`}</text>
   )
 }
 

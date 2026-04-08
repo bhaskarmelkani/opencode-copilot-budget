@@ -1,6 +1,6 @@
 {
   "name": "opencode-copilot-budget",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "GitHub Copilot premium budget in the OpenCode TUI sidebar",
   "author": "Bhaskar Melkani",
   "repository": {
