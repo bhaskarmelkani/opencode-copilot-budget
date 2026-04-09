@@ -96,42 +96,6 @@ Remove `opencode-copilot-budget` from the `plugin` array in `~/.config/opencode/
 
 All logic lives in a single file — `src/index.tsx` — so it's easy to get started.
 
-### Local development setup
-
-1. Clone the repo:
-
-   ```bash
-   git clone https://github.com/bhaskarmelkani/opencode-copilot-budget
-   cd opencode-copilot-budget
-   npm install
-   ```
-
-2. Open the repo in OpenCode.
-
-   This repo includes a project-local `.opencode/tui.json` that:
-   - disables the published global `copilot-budget.sidebar` plugin inside this repo only
-   - loads a local dev wrapper plugin from `.opencode/plugins/local-dev.tsx`
-   - shows it as `Copilot Budget Local`
-
-3. Edit `src/index.tsx` and restart OpenCode to see changes.
-
-4. Verify locally in OpenCode:
-
-   1. OpenCode is using `github-copilot` as the active provider
-   2. The sidebar shows `Copilot Budget Local`
-   3. Click `Refresh 🔄` and confirm the widget content switches to `syncing...`
-   4. Submit a prompt and confirm the widget refreshes immediately
-   5. Wait for the assistant response to finish and confirm it refreshes again
-
-If you prefer testing through your global OpenCode config instead, point it at your local clone via an absolute path in `~/.config/opencode/tui.json`:
-
-   ```json
-   {
-     "$schema": "https://opencode.ai/tui.json",
-     "plugin": ["/absolute/path/to/opencode-copilot-budget"]
-   }
-   ```
-
 ### Codebase overview
 
 ```
