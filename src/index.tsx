@@ -60,10 +60,6 @@ type CopilotUsageData = {
   tier: "paid" | "free"
 }
 
-type CopilotBudgetOptions = {
-  title?: string
-}
-
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
 type CacheEntry = { data: CopilotUsageData | null; timestamp: number }
@@ -222,15 +218,6 @@ function ProgressBar(props: { percent: number }) {
   )
 }
 
-function resolveTitle(options: unknown): string {
-  if (!options || typeof options !== "object" || Array.isArray(options)) {
-    return "Copilot Budget"
-  }
-
-  const title = (options as CopilotBudgetOptions).title
-  return typeof title === "string" && title.trim() ? title.trim() : "Copilot Budget"
-}
-
 function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled: boolean }) {
   const theme = () => props.api.theme.current
 
@@ -249,7 +236,7 @@ function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled
   )
 }
 
-function UsageDetail(props: { api: TuiPluginApi; title: string }) {
+function UsageDetail(props: { api: TuiPluginApi }) {
   const theme = () => props.api.theme.current
   const [usage, { refetch }] = createResource(fetchCopilotUsage)
   const [manualRefreshing, setManualRefreshing] = createSignal(false)
@@ -294,7 +281,7 @@ function UsageDetail(props: { api: TuiPluginApi; title: string }) {
 
   return (
     <box flexDirection="column" gap={1}>
-      <text fg={theme().text}><b>{props.title}</b></text>
+      <text fg={theme().text}><b>Copilot Budget</b></text>
       <Switch>
         <Match when={manualRefreshing()}>
           <text fg={theme().textMuted}>syncing...</text>
@@ -352,28 +339,26 @@ function UsageDetail(props: { api: TuiPluginApi; title: string }) {
   )
 }
 
-function View(props: { api: TuiPluginApi; title: string }) {
+function View(props: { api: TuiPluginApi }) {
   const isCopilot = createMemo(() =>
     props.api.state.provider.some((p) => p.id === "github-copilot"),
   )
 
   return (
     <Show when={isCopilot()}>
-      <UsageDetail api={props.api} title={props.title} />
+      <UsageDetail api={props.api} />
     </Show>
   )
 }
 
 // ─── Plugin Registration ──────────────────────────────────────────────────────
 
-const tui: TuiPlugin = async (api, options) => {
-  const title = resolveTitle(options)
-
+const tui: TuiPlugin = async (api) => {
   api.slots.register({
     order: 50, // top of sidebar — before Context (100), MCP (200), LSP (300), etc.
     slots: {
       sidebar_content() {
-        return <View api={api} title={title} />
+        return <View api={api} />
       },
     },
   })

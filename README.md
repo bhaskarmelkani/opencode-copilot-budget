@@ -96,6 +96,27 @@ Remove `opencode-copilot-budget` from the `plugin` array in `~/.config/opencode/
 
 All logic lives in a single file — `src/index.tsx` — so it's easy to get started.
 
+### Local development setup
+
+1. Clone the repo:
+
+   ```bash
+   git clone https://github.com/bhaskarmelkani/opencode-copilot-budget
+   cd opencode-copilot-budget
+   npm install
+   ```
+
+2. Point OpenCode at your local clone via an absolute path in `~/.config/opencode/tui.json`:
+
+   ```json
+   {
+     "$schema": "https://opencode.ai/tui.json",
+     "plugin": ["/absolute/path/to/opencode-copilot-budget"]
+   }
+   ```
+
+3. Edit `src/index.tsx` and restart OpenCode to see changes.
+
 ### Codebase overview
 
 ```
