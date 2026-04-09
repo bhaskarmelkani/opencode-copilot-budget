@@ -9,7 +9,7 @@
  *
  * Display format:
  *   Copilot Budget
- *   ████████░░░░░░░░ 12% Used Refresh 🔄
+ *   ████████░░░░░░░░ 12% Used 🔄 Refresh
  *   117 / 1000 Premium Requests
  *   Resets on 1 May
  *
@@ -243,7 +243,7 @@ function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled
       paddingLeft={1}
     >
       <text fg={props.disabled ? theme().textMuted : theme().primary}>
-        <b>Refresh 🔄</b>
+        <b>🔄 Refresh</b>
       </text>
     </box>
   )
