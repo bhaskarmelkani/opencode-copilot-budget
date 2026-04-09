@@ -3,12 +3,13 @@
  * opencode-copilot-budget
  *
  * Displays your GitHub Copilot premium request budget in the OpenCode TUI
- * sidebar. Automatically refreshes after each AI response. Only visible when
- * the active provider is `github-copilot`.
+ * sidebar. Refreshes after prompt submit, after each AI response, and via an
+ * inline manual refresh action. Only visible when the active provider is
+ * `github-copilot`.
  *
  * Display format:
  *   Copilot Budget
- *   ████████░░░░░░░░ 12% Used      ← green; turns red at ≥ 90 %
+ *   ████████░░░░░░░░ 12% Used Refresh 🔄
  *   117 / 1000 Premium Requests
  *   Resets on 1 May
  *
@@ -25,7 +26,7 @@
  */
 
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
-import { createMemo, createResource, Match, onCleanup, onMount, Show, Switch } from "solid-js"
+import { createMemo, createResource, createSignal, Match, onCleanup, onMount, Show, Switch } from "solid-js"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 
@@ -57,6 +58,10 @@ type CopilotUsageData = {
   overagePermitted: boolean
   resetDate: string | null
   tier: "paid" | "free"
+}
+
+type CopilotBudgetOptions = {
+  title?: string
 }
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
@@ -217,76 +222,158 @@ function ProgressBar(props: { percent: number }) {
   )
 }
 
-function UsageDetail(props: { api: TuiPluginApi }) {
-  const theme = () => props.api.theme.current
-  const [usage, { refetch }] = createResource(fetchCopilotUsage)
+function resolveTitle(options: unknown): string {
+  if (!options || typeof options !== "object" || Array.isArray(options)) {
+    return "Copilot Budget"
+  }
 
-  onMount(() => {
-    // Refetch whenever the AI finishes responding — exactly when a Copilot
-    // request has been consumed. Bust the cache first so we always hit the
-    // network and get a fresh count.
-    const off = props.api.event.on("session.idle", () => {
-      bustCache()
-      refetch()
-    })
-    onCleanup(off)
-  })
+  const title = (options as CopilotBudgetOptions).title
+  return typeof title === "string" && title.trim() ? title.trim() : "Copilot Budget"
+}
+
+function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled: boolean }) {
+  const theme = () => props.api.theme.current
 
   return (
-    <Switch>
-      <Match when={usage()}>
-        {(data) => (
-          <box direction="column">
-            <Show
-              when={!data().unlimited}
-              fallback={<text fg={theme().textMuted}>{`${data().used} used (unlimited)`}</text>}
-            >
-              <ProgressBar percent={data().percent} />
-              <text fg={theme().textMuted}>{`${data().used} / ${data().entitlement} Premium Requests`}</text>
-            </Show>
-            <Show when={data().overageCount > 0}>
-              <text fg={theme().warning}>{`+${data().overageCount} overage`}</text>
-            </Show>
-            <Show when={data().resetDate}>
-              <text fg={theme().textMuted}>{"Resets on "}<b>{formatResetDate(data().resetDate!)}</b></text>
-            </Show>
-          </box>
-        )}
-      </Match>
-      <Match when={usage.loading}>
-        <text fg={theme().textMuted}>syncing...</text>
-      </Match>
-      <Match when={true}>
-        <text fg={theme().textMuted}>sync unavailable</text>
-      </Match>
-    </Switch>
+    <box
+      onMouseUp={() => {
+        if (props.disabled) return
+        props.refresh()
+      }}
+      paddingLeft={1}
+    >
+      <text fg={props.disabled ? theme().textMuted : theme().primary}>
+        <b>Refresh 🔄</b>
+      </text>
+    </box>
   )
 }
 
-function View(props: { api: TuiPluginApi }) {
+function UsageDetail(props: { api: TuiPluginApi; title: string }) {
   const theme = () => props.api.theme.current
+  const [usage, { refetch }] = createResource(fetchCopilotUsage)
+  const [manualRefreshing, setManualRefreshing] = createSignal(false)
+
+  const autosync = () => {
+    bustCache()
+    void refetch()
+  }
+
+  const refresh = async () => {
+    setManualRefreshing(true)
+    bustCache()
+    try {
+      await refetch()
+    } finally {
+      setManualRefreshing(false)
+    }
+  }
+
+  const triggerRefresh = () => {
+    void refresh()
+  }
+
+  onMount(() => {
+    const offPromptSubmit = props.api.event.on("tui.command.execute", (event) => {
+      if (event.properties.command !== "prompt.submit") return
+      autosync()
+    })
+
+    // Refetch whenever the AI finishes responding — exactly when a Copilot
+    // request has been consumed. Bust the cache first so we always hit the
+    // network and get a fresh count.
+    const offSessionIdle = props.api.event.on("session.idle", () => {
+      autosync()
+    })
+
+    onCleanup(() => {
+      offPromptSubmit()
+      offSessionIdle()
+    })
+  })
+
+  return (
+    <box flexDirection="column" gap={1}>
+      <text fg={theme().text}><b>{props.title}</b></text>
+      <Switch>
+        <Match when={manualRefreshing()}>
+          <text fg={theme().textMuted}>syncing...</text>
+        </Match>
+        <Match when={usage()}>
+          {(data) => (
+            <box flexDirection="column">
+              <Show
+                when={!data().unlimited}
+                fallback={
+                  <box flexDirection="row">
+                    <text fg={theme().textMuted}>{`${data().used} used (unlimited)`}</text>
+                    <RefreshButton
+                      api={props.api}
+                      refresh={triggerRefresh}
+                      disabled={usage.loading || manualRefreshing()}
+                    />
+                  </box>
+                }
+              >
+                <box flexDirection="row">
+                  <ProgressBar percent={data().percent} />
+                  <RefreshButton
+                    api={props.api}
+                    refresh={triggerRefresh}
+                    disabled={usage.loading || manualRefreshing()}
+                  />
+                </box>
+                <text fg={theme().textMuted}>{`${data().used} / ${data().entitlement} Premium Requests`}</text>
+              </Show>
+              <Show when={data().overageCount > 0}>
+                <text fg={theme().warning}>{`+${data().overageCount} overage`}</text>
+              </Show>
+              <Show when={data().resetDate}>
+                <text fg={theme().textMuted}>{"Resets on "}<b>{formatResetDate(data().resetDate!)}</b></text>
+              </Show>
+            </box>
+          )}
+        </Match>
+        <Match when={usage.loading}>
+          <text fg={theme().textMuted}>syncing...</text>
+        </Match>
+        <Match when={true}>
+          <box flexDirection="row">
+            <text fg={theme().textMuted}>sync unavailable</text>
+            <RefreshButton
+              api={props.api}
+              refresh={triggerRefresh}
+              disabled={usage.loading || manualRefreshing()}
+            />
+          </box>
+        </Match>
+      </Switch>
+    </box>
+  )
+}
+
+function View(props: { api: TuiPluginApi; title: string }) {
   const isCopilot = createMemo(() =>
     props.api.state.provider.some((p) => p.id === "github-copilot"),
   )
 
   return (
     <Show when={isCopilot()}>
-      <box direction="column">
-        <text fg={theme().text}><b>Copilot Budget</b></text>
-        <UsageDetail api={props.api} />
-      </box>
+      <UsageDetail api={props.api} title={props.title} />
     </Show>
   )
 }
 
 // ─── Plugin Registration ──────────────────────────────────────────────────────
 
-const tui: TuiPlugin = async (api) => {
+const tui: TuiPlugin = async (api, options) => {
+  const title = resolveTitle(options)
+
   api.slots.register({
     order: 50, // top of sidebar — before Context (100), MCP (200), LSP (300), etc.
     slots: {
       sidebar_content() {
-        return <View api={api} />
+        return <View api={api} title={title} />
       },
     },
   })

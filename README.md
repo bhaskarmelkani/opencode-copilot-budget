@@ -8,7 +8,8 @@ Shows your GitHub Copilot premium request budget in the [OpenCode](https://openc
 
 - Progress bar that turns **red** when you reach 90 % of your budget
 - Request count and percentage used
-- Reset date, updated automatically after every AI response
+- Inline `Refresh 🔄` action next to the first usage line
+- Reset date, updated automatically after prompt submit and after every AI response
 - 5-minute cache to avoid unnecessary API calls
 - Works with paid and free Copilot plans
 
@@ -81,6 +82,7 @@ export GITHUB_TOKEN=$(gh auth token)
 | Unlimited plan | `62 used (unlimited)` |
 | Overage consumed | `+5 overage` (shown below usage) |
 | Reset date known | `Resets on 1 May` (date in bold) |
+| Manual refresh | inline `Refresh 🔄` next to the first usage line |
 | Token missing / network error | `sync unavailable` |
 | First load | `syncing...` |
 
@@ -104,7 +106,24 @@ All logic lives in a single file — `src/index.tsx` — so it's easy to get sta
    npm install
    ```
 
-2. Point OpenCode at your local clone via an absolute path in `~/.config/opencode/tui.json`:
+2. Open the repo in OpenCode.
+
+   This repo includes a project-local `.opencode/tui.json` that:
+   - disables the published global `copilot-budget.sidebar` plugin inside this repo only
+   - loads a local dev wrapper plugin from `.opencode/plugins/local-dev.tsx`
+   - shows it as `Copilot Budget Local`
+
+3. Edit `src/index.tsx` and restart OpenCode to see changes.
+
+4. Verify locally in OpenCode:
+
+   1. OpenCode is using `github-copilot` as the active provider
+   2. The sidebar shows `Copilot Budget Local`
+   3. Click `Refresh 🔄` and confirm the widget content switches to `syncing...`
+   4. Submit a prompt and confirm the widget refreshes immediately
+   5. Wait for the assistant response to finish and confirm it refreshes again
+
+If you prefer testing through your global OpenCode config instead, point it at your local clone via an absolute path in `~/.config/opencode/tui.json`:
 
    ```json
    {
@@ -112,8 +131,6 @@ All logic lives in a single file — `src/index.tsx` — so it's easy to get sta
      "plugin": ["/absolute/path/to/opencode-copilot-budget"]
    }
    ```
-
-3. Edit `src/index.tsx` and restart OpenCode to see changes.
 
 ### Codebase overview
 
