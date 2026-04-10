@@ -31,5 +31,13 @@
     "opencode-tui-plugin",
     "github-copilot"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0",
+    "solid-js": "1.9.11"
+  }
 }
