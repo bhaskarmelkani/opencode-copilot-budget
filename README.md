@@ -104,7 +104,22 @@ All logic lives in a single file — `src/index.tsx` — so it's easy to get sta
    npm install
    ```
 
-2. Point OpenCode at your local clone via an absolute path in `~/.config/opencode/tui.json`:
+2. Open the repo in OpenCode.
+
+   This repo includes a project-local `.opencode/tui.json` that:
+   - disables the published global `copilot-budget.sidebar` plugin inside this repo only
+   - loads a local dev wrapper plugin from `.opencode/plugins/local-dev.tsx`
+
+3. Edit `src/index.tsx` and restart OpenCode to see changes.
+
+4. Verify locally in OpenCode:
+
+   1. OpenCode is using `github-copilot` as the active provider
+   2. The sidebar shows `Copilot Budget`
+   3. Confirm the plugin loads from the local clone instead of the published package
+   4. Edit `src/index.tsx`, restart OpenCode, and confirm the local change appears
+
+If you prefer testing through your global OpenCode config instead, point it at your local clone via an absolute path in `~/.config/opencode/tui.json`:
 
    ```json
    {
@@ -112,8 +127,6 @@ All logic lives in a single file — `src/index.tsx` — so it's easy to get sta
      "plugin": ["/absolute/path/to/opencode-copilot-budget"]
    }
    ```
-
-3. Edit `src/index.tsx` and restart OpenCode to see changes.
 
 ### Codebase overview
 
