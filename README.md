@@ -8,7 +8,8 @@ Shows your GitHub Copilot premium request budget in the [OpenCode](https://openc
 
 - Progress bar that turns **red** when you reach 90 % of your budget
 - Request count and percentage used
-- Reset date, updated automatically after every AI response
+- Inline `🔄 Refresh` action next to the first usage line
+- Reset date, updated automatically after prompt submit and after every AI response
 - 5-minute cache to avoid unnecessary API calls
 - Works with paid and free Copilot plans
 
@@ -81,6 +82,7 @@ export GITHUB_TOKEN=$(gh auth token)
 | Unlimited plan | `62 used (unlimited)` |
 | Overage consumed | `+5 overage` (shown below usage) |
 | Reset date known | `Resets on 1 May` (date in bold) |
+| Manual refresh | inline `🔄 Refresh` next to the first usage line |
 | Token missing / network error | `sync unavailable` |
 | First load | `syncing...` |
 
