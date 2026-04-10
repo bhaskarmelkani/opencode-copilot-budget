@@ -8,7 +8,7 @@ Shows your GitHub Copilot premium request budget in the [OpenCode](https://openc
 
 - Progress bar that turns **red** when you reach 90 % of your budget
 - Request count and percentage used
-- Inline `🔄 Refresh` action next to the first usage line
+- `↻ Refresh` button in the header row, with pointer cursor on hover
 - Reset date, updated automatically after prompt submit and after every AI response
 - 5-minute cache to avoid unnecessary API calls
 - Works with paid and free Copilot plans

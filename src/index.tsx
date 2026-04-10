@@ -8,8 +8,8 @@
  * `github-copilot`.
  *
  * Display format:
- *   Copilot Budget
- *   ████████░░░░░░░░ 12% Used 🔄 Refresh
+ *   Copilot Budget   ↻ Refresh
+ *   ████████░░░░░░░░ 12% Used
  *   117 / 1000 Premium Requests
  *   Resets on 1 May
  *
@@ -27,6 +27,7 @@
 
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
 import { createMemo, createResource, createSignal, Match, onCleanup, onMount, Show, Switch } from "solid-js"
+import { RGBA } from "@opentui/core"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 
@@ -220,6 +221,11 @@ function ProgressBar(props: { percent: number }) {
 
 function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled: boolean }) {
   const theme = () => props.api.theme.current
+  const color = () => props.disabled ? theme().textMuted : theme().primary
+  const bgTint = () => {
+    const c = color()
+    return RGBA.fromValues(c.r, c.g, c.b, 0.15)
+  }
 
   return (
     <box
@@ -227,11 +233,18 @@ function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled
         if (props.disabled) return
         props.refresh()
       }}
-      paddingLeft={1}
+      onMouseOver={() => {
+        if (!props.disabled) props.api.renderer.setMousePointer("pointer")
+      }}
+      onMouseOut={() => props.api.renderer.setMousePointer("default")}
+      marginLeft={2}
+      flexDirection="row"
     >
-      <text fg={props.disabled ? theme().textMuted : theme().primary}>
-        <b>🔄 Refresh</b>
+      <text fg={bgTint()} bg={theme().background}>{"▐"}</text>
+      <text fg={color()} bg={bgTint()}>
+        <b>{"↻ Refresh"}</b>
       </text>
+      <text fg={bgTint()} bg={theme().background}>{"▌"}</text>
     </box>
   )
 }
@@ -286,7 +299,14 @@ function UsageDetail(props: { api: TuiPluginApi }) {
 
   return (
     <box flexDirection="column" gap={1}>
-      <text fg={theme().text}><b>Copilot Budget</b></text>
+      <box flexDirection="row">
+        <text fg={theme().text}><b>Copilot Budget</b></text>
+        <RefreshButton
+          api={props.api}
+          refresh={triggerRefresh}
+          disabled={usage.loading || manualRefreshing()}
+        />
+      </box>
       <Switch>
         <Match when={manualRefreshing()}>
           <text fg={theme().textMuted}>syncing...</text>
@@ -297,24 +317,10 @@ function UsageDetail(props: { api: TuiPluginApi }) {
               <Show
                 when={!data().unlimited}
                 fallback={
-                  <box flexDirection="row">
-                    <text fg={theme().textMuted}>{`${data().used} used (unlimited)`}</text>
-                    <RefreshButton
-                      api={props.api}
-                      refresh={triggerRefresh}
-                      disabled={usage.loading || manualRefreshing()}
-                    />
-                  </box>
+                  <text fg={theme().textMuted}>{`${data().used} used (unlimited)`}</text>
                 }
               >
-                <box flexDirection="row">
-                  <ProgressBar percent={data().percent} />
-                  <RefreshButton
-                    api={props.api}
-                    refresh={triggerRefresh}
-                    disabled={usage.loading || manualRefreshing()}
-                  />
-                </box>
+                <ProgressBar percent={data().percent} />
                 <text fg={theme().textMuted}>{`${data().used} / ${data().entitlement} Premium Requests`}</text>
               </Show>
               <Show when={data().overageCount > 0}>
@@ -330,14 +336,7 @@ function UsageDetail(props: { api: TuiPluginApi }) {
           <text fg={theme().textMuted}>syncing...</text>
         </Match>
         <Match when={true}>
-          <box flexDirection="row">
-            <text fg={theme().textMuted}>sync unavailable</text>
-            <RefreshButton
-              api={props.api}
-              refresh={triggerRefresh}
-              disabled={usage.loading || manualRefreshing()}
-            />
-          </box>
+          <text fg={theme().textMuted}>sync unavailable</text>
         </Match>
       </Switch>
     </box>
