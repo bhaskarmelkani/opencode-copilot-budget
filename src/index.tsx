@@ -240,24 +240,29 @@ function UsageDetail(props: { api: TuiPluginApi }) {
   const theme = () => props.api.theme.current
   const [usage, { refetch }] = createResource(fetchCopilotUsage)
   const [manualRefreshing, setManualRefreshing] = createSignal(false)
+  let refreshInFlight: Promise<void> | null = null
 
-  const refresh = async () => {
-    if (manualRefreshing() || usage.loading) return
-    setManualRefreshing(true)
+  const doRefresh = (manual: boolean): Promise<void> => {
+    if (refreshInFlight) return refreshInFlight
+    if (manual) setManualRefreshing(true)
     bustCache()
-    try {
-      await refetch()
-    } finally {
-      setManualRefreshing(false)
-    }
+    refreshInFlight = (async () => {
+      try {
+        await refetch()
+      } finally {
+        if (manual) setManualRefreshing(false)
+        refreshInFlight = null
+      }
+    })()
+    return refreshInFlight
   }
 
   const autosync = () => {
-    void refresh()
+    void doRefresh(false)
   }
 
   const triggerRefresh = () => {
-    void refresh()
+    void doRefresh(true)
   }
 
   onMount(() => {
