@@ -241,12 +241,8 @@ function UsageDetail(props: { api: TuiPluginApi }) {
   const [usage, { refetch }] = createResource(fetchCopilotUsage)
   const [manualRefreshing, setManualRefreshing] = createSignal(false)
 
-  const autosync = () => {
-    bustCache()
-    void refetch()
-  }
-
   const refresh = async () => {
+    if (manualRefreshing() || usage.loading) return
     setManualRefreshing(true)
     bustCache()
     try {
@@ -254,6 +250,10 @@ function UsageDetail(props: { api: TuiPluginApi }) {
     } finally {
       setManualRefreshing(false)
     }
+  }
+
+  const autosync = () => {
+    void refresh()
   }
 
   const triggerRefresh = () => {
