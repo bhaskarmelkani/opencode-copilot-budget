@@ -8,8 +8,8 @@
  * `github-copilot`.
  *
  * Display format:
- *   Copilot Budget
- *   ████████░░░░░░░░ 12% Used 🔄 Refresh
+ *   Copilot Budget   ↻ Refresh
+ *   ████████░░░░░░░░ 12% Used
  *   117 / 1000 Premium Requests
  *   Resets on 1 May
  *
