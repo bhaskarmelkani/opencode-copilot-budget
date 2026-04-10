@@ -221,8 +221,9 @@ function ProgressBar(props: { percent: number }) {
 
 function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled: boolean }) {
   const theme = () => props.api.theme.current
+  const color = () => props.disabled ? theme().textMuted : theme().primary
   const bgTint = () => {
-    const c = props.disabled ? theme().textMuted : theme().primary
+    const c = color()
     return RGBA.fromValues(c.r, c.g, c.b, 0.15)
   }
 
@@ -236,12 +237,14 @@ function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled
         if (!props.disabled) props.api.renderer.setMousePointer("pointer")
       }}
       onMouseOut={() => props.api.renderer.setMousePointer("default")}
-      paddingLeft={2}
-      backgroundColor={bgTint()}
+      marginLeft={2}
+      flexDirection="row"
     >
-      <text fg={props.disabled ? theme().textMuted : theme().primary}>
-        <b>{"[ ↻ Refresh ]"}</b>
+      <text fg={bgTint()} bg={theme().background}>{"▐"}</text>
+      <text fg={color()} bg={bgTint()}>
+        <b>{"↻ Refresh"}</b>
       </text>
+      <text fg={bgTint()} bg={theme().background}>{"▌"}</text>
     </box>
   )
 }
