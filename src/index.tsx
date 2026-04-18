@@ -3,12 +3,13 @@
  * opencode-copilot-budget
  *
  * Displays your GitHub Copilot premium request budget in the OpenCode TUI
- * sidebar. Refreshes after prompt submit, after each AI response, and via an
- * inline manual refresh action. Only visible when the active provider is
- * `github-copilot`.
+ * sidebar. Auto-refreshes every 30 seconds, immediately after prompt submit,
+ * and after each AI response. On API errors or GitHub throttling, retries with
+ * exponential backoff (30s → 60s → 120s … up to 5 min). Only visible when
+ * the active provider is `github-copilot`.
  *
  * Display format:
- *   Copilot Budget   ↻ Refresh
+ *   Copilot Budget
  *   ████████░░░░░░░░ 12% Used
  *   117 / 1000 Premium Requests
  *   Resets on 1 May
@@ -26,8 +27,7 @@
  */
 
 import type { TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
-import { createMemo, createResource, createSignal, Match, onCleanup, onMount, Show, Switch } from "solid-js"
-import { RGBA } from "@opentui/core"
+import { createMemo, createResource, Match, onCleanup, onMount, Show, Switch } from "solid-js"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 
@@ -36,8 +36,10 @@ const id = "copilot-budget.sidebar"
 const execFileAsync = promisify(execFile)
 
 const COPILOT_USER_ENDPOINT = "https://api.github.com/copilot_internal/user"
-const CACHE_TTL_MS = 5 * 60 * 1000
+const CACHE_TTL_MS = 30_000 // 30 s — matches the polling interval
 const REQUEST_TIMEOUT_MS = 10_000
+const POLL_INTERVAL_MS = 30_000 // base polling cadence
+const BACKOFF_MAX_MS = 5 * 60 * 1000 // cap backoff at 5 min
 const BAR_WIDTH = 16
 const BAR_FILL_COLOR = "#3fb950" // GitHub green
 const BAR_DANGER_COLOR = "#f85149" // red when >= 90%
@@ -219,79 +221,56 @@ function ProgressBar(props: { percent: number }) {
   )
 }
 
-function RefreshButton(props: { api: TuiPluginApi; refresh: () => void; disabled: boolean }) {
-  const theme = () => props.api.theme.current
-  const color = () => props.disabled ? theme().textMuted : theme().primary
-  const bgTint = () => {
-    const c = color()
-    return RGBA.fromValues(c.r, c.g, c.b, 0.15)
-  }
-
-  return (
-    <box
-      onMouseUp={() => {
-        if (props.disabled) return
-        props.refresh()
-      }}
-      onMouseOver={() => {
-        if (!props.disabled) props.api.renderer.setMousePointer("pointer")
-      }}
-      onMouseOut={() => props.api.renderer.setMousePointer("default")}
-      marginLeft={2}
-      flexDirection="row"
-    >
-      <text fg={bgTint()} bg={theme().background}>{"▐"}</text>
-      <text fg={color()} bg={bgTint()}>
-        <b>{"↻ Refresh"}</b>
-      </text>
-      <text fg={bgTint()} bg={theme().background}>{"▌"}</text>
-    </box>
-  )
-}
-
 function UsageDetail(props: { api: TuiPluginApi }) {
   const theme = () => props.api.theme.current
   const [usage, { refetch }] = createResource(fetchCopilotUsage)
-  const [manualRefreshing, setManualRefreshing] = createSignal(false)
   let refreshInFlight: Promise<void> | null = null
+  let consecutiveErrors = 0
+  let pollTimer: ReturnType<typeof setTimeout> | null = null
 
-  const doRefresh = (manual: boolean): Promise<void> => {
+  const scheduleNextPoll = (delayMs: number) => {
+    if (pollTimer !== null) clearTimeout(pollTimer)
+    pollTimer = setTimeout(() => {
+      void doRefresh()
+    }, delayMs)
+  }
+
+  const doRefresh = (): Promise<void> => {
     if (refreshInFlight) return refreshInFlight
-    if (manual) setManualRefreshing(true)
     bustCache()
     refreshInFlight = (async () => {
       try {
         await refetch()
+        // Success — reset backoff and schedule next poll at base interval
+        consecutiveErrors = 0
+        scheduleNextPoll(POLL_INTERVAL_MS)
+      } catch {
+        // Error or throttle — exponential backoff, capped at BACKOFF_MAX_MS
+        consecutiveErrors++
+        const backoff = Math.min(POLL_INTERVAL_MS * 2 ** (consecutiveErrors - 1), BACKOFF_MAX_MS)
+        scheduleNextPoll(backoff)
       } finally {
-        if (manual) setManualRefreshing(false)
         refreshInFlight = null
       }
     })()
     return refreshInFlight
   }
 
-  const autosync = () => {
-    void doRefresh(false)
-  }
-
-  const triggerRefresh = () => {
-    void doRefresh(true)
-  }
-
   onMount(() => {
+    // Start periodic polling immediately
+    scheduleNextPoll(POLL_INTERVAL_MS)
+
     const offPromptSubmit = props.api.event.on("tui.command.execute", (event) => {
       if (event.properties.command !== "prompt.submit") return
-      autosync()
+      void doRefresh()
     })
 
-    // Refetch whenever the AI finishes responding — exactly when a Copilot
-    // request has been consumed. Bust the cache first so we always hit the
-    // network and get a fresh count.
     const offSessionIdle = props.api.event.on("session.idle", () => {
-      autosync()
+      void doRefresh()
     })
 
     onCleanup(() => {
+      if (pollTimer !== null) clearTimeout(pollTimer)
       offPromptSubmit()
       offSessionIdle()
     })
@@ -301,16 +280,8 @@ function UsageDetail(props: { api: TuiPluginApi }) {
     <box flexDirection="column" gap={1}>
       <box flexDirection="row">
         <text fg={theme().text}><b>Copilot Budget</b></text>
-        <RefreshButton
-          api={props.api}
-          refresh={triggerRefresh}
-          disabled={usage.loading || manualRefreshing()}
-        />
       </box>
       <Switch>
-        <Match when={manualRefreshing()}>
-          <text fg={theme().textMuted}>syncing...</text>
-        </Match>
         <Match when={usage()}>
           {(data) => (
             <box flexDirection="column">

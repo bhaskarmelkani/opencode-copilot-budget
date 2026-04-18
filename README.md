@@ -8,9 +8,9 @@ Shows your GitHub Copilot premium request budget in the [OpenCode](https://openc
 
 - Progress bar that turns **red** when you reach 90 % of your budget
 - Request count and percentage used
-- `↻ Refresh` button in the header row, with pointer cursor on hover
-- Reset date, updated automatically after prompt submit and after every AI response
-- 5-minute cache to avoid unnecessary API calls
+- Automatic quota refresh on first load, every 30 seconds, after prompt submit, and after every AI response
+- Reset date display when available
+- 30-second cache to avoid unnecessary API calls
 - Works with paid and free Copilot plans
 
 ## Requirements
@@ -82,7 +82,7 @@ export GITHUB_TOKEN=$(gh auth token)
 | Unlimited plan | `62 used (unlimited)` |
 | Overage consumed | `+5 overage` (shown below usage) |
 | Reset date known | `Resets on 1 May` (date in bold) |
-| Manual refresh | inline `🔄 Refresh` next to the first usage line |
+| Auto refresh | updates on first load, every 30 seconds, after prompt submit, and after each AI response |
 | Token missing / network error | `sync unavailable` |
 | First load | `syncing...` |
 
@@ -127,7 +127,7 @@ src/index.tsx   — entire plugin: token discovery, API fetch, caching, and UI
 |---|---|
 | Token discovery | `discoverToken()` |
 | API response parsing (paid + free tiers) | `parseResponse()` |
-| Fetch with 5-minute cache | `fetchCopilotUsage()` |
+| Fetch with 30-second cache | `fetchCopilotUsage()` |
 | Progress bar | `ProgressBar` |
 | Usage display (SolidJS) | `UsageDetail`, `View` |
 | Plugin registration | bottom of file |
